@@ -1,4 +1,4 @@
-FROM alpine:3.14@sha256:eb3e4e175ba6d212ba1d6e04fc0782916c08e1c9d7b45892e9796141b1d379ae
+FROM ubuntu:22.04
 
 ENV BLUEBIRD_WARNINGS=0 \
   NODE_ENV=production \
@@ -6,18 +6,30 @@ ENV BLUEBIRD_WARNINGS=0 \
   NPM_CONFIG_LOGLEVEL=warn \
   SUPPRESS_NO_CONFIG_WARNING=true
 
-RUN apk add --no-cache \
-  nodejs
-
 COPY package.json ./
 
-RUN  apk add --no-cache npm \
- && npm i --no-optional \
- && npm cache clean --force \
- && apk del npm
- 
+# 更新系统并安装必要的工具
+RUN apt-get update && apt-get install -y \
+  curl \
+  gnupg
+
+# 添加 Node.js 18.x 的官方源并安装 Node.js 18.19.0
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+  && apt-get install -y nodejs=18.19.0-1nodesource1
+
+# 验证 Node.js 版本
+RUN node -v
+
+# 设定工作目录
+WORKDIR /app
+
+# 复制应用代码到容器中
 COPY . /app
 
-CMD ["node","/app/app.js"]
+# 安装应用依赖
+RUN npm install
+
+# 容器启动时执行的命令
+CMD ["npm", "start"]
 
 EXPOSE 3000
